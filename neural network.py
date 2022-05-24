@@ -1,9 +1,9 @@
 from matplotlib.axis import Axis
 import numpy as np
 import nnfs
-from nnfs.datasets import spiral_data
+from nnfs.datasets import *
 
-X,y = spiral_data(100,3)
+X,y = vertical_data(samples=100,classes=3)
 
 np.random.seed(0)
 class Layer_Dense:
@@ -61,19 +61,47 @@ activation1 = Activation_ReLU()
 layer2 = Layer_Dense(3,3)
 activation2 = Activation_Softmax()
 
-layer1.forward(X)
-activation1.forward(layer1.output)
+# layer1.forward(X)
+# activation1.forward(layer1.output)
 
-layer2.forward(activation1.output)
-activation2.forward(layer2.output)
+# layer2.forward(activation1.output)
+# activation2.forward(layer2.output)
 
-print("Layer output ",activation2.output[:5])
+# print("Layer output ",activation2.output[:5])
 
 loss_function = Loss_CategoricalCrossEntropy()
-loss = loss_function.calculate(activation2.output,y)
+# loss = loss_function.calculate(activation2.output,y)
 
-print("loss: ",loss)
+# predictions = np.argmax(activation2.output,axis=1)
+# # the "Argmax" function returns the indices of the maximum values along an axis.
+# # print("prediction",predictions)
+# accuracy = np.mean(predictions==y)
+
+# print("loss: ",loss)
+# print("accuracy ",accuracy)
 
 
+for i in range(10000):
+    layer1.weight = 0.05* np.random.randn(2,3)
+    layer2.weight = 0.05* np.random.randn(1,3)
+    layer1.bias = 0.05* np.random.randn(3,3)
+    layer2.bias = 0.05* np.random.randn(1,3)
 
+    layer1.forward(X)
+    activation1.forward(layer1.output)
+    layer2.forward(activation1.output)
+    activation2.forward(layer2.output)
 
+    best_loss = 999999
+    loss = loss_function.calculate(activation2.output,y)
+
+    predictions = np.argmax(activation2.output,axis=1)
+    accuracy = np.mean(predictions==y)
+
+    if loss < best_loss:
+        print("New set of weights, iteration ",i,"loss ",loss,"accuracy ",accuracy)
+        best_layer1_weight = layer1.weight.copy()
+        best_layer2_weight = layer2.weight.copy()
+        best_layer1_bias = layer1.bias.copy()
+        best_layer2_bias = layer2.bias.copy()
+        best_loss = loss
