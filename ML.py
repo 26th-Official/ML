@@ -1,14 +1,11 @@
+import matplotlib.pyplot as plt
 import numpy as np
- 
-# softmax_output = np.array([0.7,0.2,0.3],
-#                         [0.1,0.4,0.5]
-#                         [0.09,0.8,0.2])
+def f(x):
+    return 2*x**2
+x = np.array(range(5))
+y = f(x)
+print(x)
+print(y)
 
-# class_target = [1,0,0]
-
-
-# print(softmax_output[range(len(softmax_output)),class_target])
-
-bias = np.zeros((1,5))
-print(bias)
- 
+plt.plot(x, y)
+plt.show()
