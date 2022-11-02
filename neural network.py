@@ -3,7 +3,7 @@ import numpy as np
 import nnfs
 from nnfs.datasets import *
 
-X,y = spiral_data(samples=100,classes=3)
+X,y = vertical_data(samples=100,classes=3)
 
 np.random.seed(0)
 class Layer_Dense:
@@ -27,6 +27,7 @@ class Loss:
     def calculate(self,output,y):
         # here output is the negative likelihood from Categoricalentropy class
         sample_losses= self.forward(output,y)
+        
         # print("Samples ",sample_losses[:5])
         data_loss = np.mean(sample_losses)
         # print("Y ",y[:5])
