@@ -18,6 +18,8 @@ for category in movie_reviews.categories():
 #         d.append(temp)
 #         temp = []
 
+
+
 random.shuffle(doc)
 print(doc[10])
 
