@@ -1,9 +1,11 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import OrdinalEncoder
-import matplotlib.pyplot as plt
+from sklearn.preprocessing import OrdinalEncoder,StandardScaler
+from sklearn.pipeline import Pipeline
+
 
 data = pd.read_csv("Datasets\housing.csv")
 print(data.head())
@@ -44,13 +46,6 @@ t_data_label = x_train["median_house_value"].copy()
 
 t_data_num = t_data.select_dtypes(include=[np.number])
 
-imputer = SimpleImputer(strategy="median")
-temp = imputer.fit_transform(t_data_num)
-
-
-t_data_num = pd.DataFrame(temp,columns=t_data_num.columns,index=t_data_num.index)
-print(t_data_num.info())
-
 t_data_str = t_data[["ocean_proximity"]]
 print(t_data_str)
 # print(t_data["ocean_proximity"].unique())
@@ -58,11 +53,22 @@ print(t_data_str)
 ord_encoder = OrdinalEncoder()
 temp = ord_encoder.fit_transform(t_data_str)
 # print(temp)
-
 t_data_str = pd.DataFrame(temp,columns=t_data_str.columns,index=t_data_str.index)
 print(t_data_str)
 
+# print(t_data[["housing_median_age"]].max())
 
+# t_data.hist()
+
+trans_pipeline = Pipeline([
+    ("impute",SimpleImputer(strategy="median")),
+    ("std_scaler",StandardScaler())
+])
+
+temp = trans_pipeline.fit_transform(t_data_num)
+
+t_data_num = pd.DataFrame(temp,columns=t_data_num.columns,index=t_data_num.index)
+print(t_data_num.info())
 
 
 
