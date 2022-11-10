@@ -3,10 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import OrdinalEncoder,StandardScaler
+from sklearn.preprocessing import OrdinalEncoder,StandardScaler,FunctionTransformer
 from sklearn.compose import ColumnTransformer,make_column_selector
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import make_pipeline
 from sklearn.metrics.pairwise import rbf_kernel
+from sklearn.cluster import KMeans
+from sklearn.base import BaseEstimator,TransformerMixin
+from sklearn.utils.validation import check_array,check_is_fitted
 
 
 data = pd.read_csv("Datasets\housing.csv")
@@ -67,16 +70,16 @@ print(t_data.info())
 # t_data.hist()
 
 
-num_pipeline = Pipeline([
-    ("impute",SimpleImputer(strategy="median")),
-    ("std_scaler",StandardScaler())
+num_pipeline = make_pipeline([
+    (SimpleImputer(strategy="median")),
+    (StandardScaler())
 ])
 
 
 
-cat_pipeline = Pipeline([
-    ("impute",SimpleImputer(strategy="most_frequent")),
-    ("ord_encoder", OrdinalEncoder())
+cat_pipeline = make_pipeline([
+    (SimpleImputer(strategy="most_frequent")),
+    (OrdinalEncoder())
 ])
 
 preprocessing = ColumnTransformer([
@@ -95,14 +98,42 @@ print(t_data)
 # print(final_data.info())
 # print(final_data.head())
 
-t_data[["longitude", "latitude", "housing_median_age", "total_rooms",
-               "total_bedrooms", "population", "households", "median_income"]].hist()
+# t_data[["longitude", "latitude", "housing_median_age", "total_rooms",
+#                "total_bedrooms", "population", "households", "median_income",
+#                "room_per_house","bedrooms_ratio","people_per_house"]].hist()
 
 
-from sklearn.preprocessing import FunctionTransformer
+
 
 log_transformer = FunctionTransformer(np.log, inverse_func=np.exp)
 log_pop = log_transformer.transform(t_data[["population"]])
+
+class ClusterSimilarity(BaseEstimator,TransformerMixin):
+    def __init__(self,n_cluster = 10,gamma=1.0,random_state=None):
+        self.n_cluster = n_cluster
+        self.gamma = gamma
+        self.random_state = random_state
+        
+    def fit(self,x,y=None,sample_weight=None):
+        self.kmeans_ = KMeans(self.n_cluster,random_state=self.random_state)
+        self.kmeans_.fit(x,sample_weight=sample_weight)
+        return self
+    
+    def transform(self,x):
+        return rbf_kernel(x,self.kmeans_.cluster_centers_,gamma=self.gamma)
+    
+    def get_feature_names_out(self,names=None):
+        return [f"Cluster {i} similarity" for i in range(self.n_cluster)]
+
+    
+    
+cluster = ClusterSimilarity(n_cluster = 10,gamma=1.0,random_state=42)
+temp = cluster.fit_transform(t_data[["longitude", "latitude"]],sample_weight = t_data_label)
+
+
+      
+        
+
 
 
 
