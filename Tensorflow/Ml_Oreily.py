@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OrdinalEncoder,StandardScaler,FunctionTransformer
-from sklearn.compose import ColumnTransformer,make_column_selector
-from sklearn.pipeline import make_pipeline
+from sklearn.compose import ColumnTransformer,make_column_selector,make_column_transformer
+from sklearn.pipeline import make_pipeline,Pipeline
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.cluster import KMeans
 from sklearn.base import BaseEstimator,TransformerMixin
@@ -43,10 +43,6 @@ t_data = x_train.copy()
 t_data = x_train.drop("median_house_value",axis=1)
 t_data_label = x_train["median_house_value"].copy()
 
-t_data["room_per_house"] = t_data["total_rooms"]/t_data["households"]
-t_data["bedrooms_ratio"] = t_data["total_bedrooms"]/t_data["total_rooms"]
-t_data["people_per_house"] = t_data["population"]/t_data["households"]
-
 print(t_data.info())
 
 
@@ -69,53 +65,14 @@ print(t_data.info())
 
 # t_data.hist()
 
-
-num_pipeline = make_pipeline([
-    (SimpleImputer(strategy="median")),
-    (StandardScaler())
-])
-
-
-
-cat_pipeline = make_pipeline([
-    (SimpleImputer(strategy="most_frequent")),
-    (OrdinalEncoder())
-])
-
-preprocessing = ColumnTransformer([
-    ("int",num_pipeline,make_column_selector(dtype_include=np.number)),
-    ("str",cat_pipeline,make_column_selector(dtype_include=object))
-])
-
-
-# t_data_num = pd.DataFrame(temp,columns=t_data_num.columns,index=t_data_num.index)
-# print(t_data_num.info())
-
-print(t_data)
-# final_data = preprocessing.fit_transform(t_data)
-
-# final_data = pd.DataFrame(final_data,columns=t_data.columns,index=t_data.index)
-# print(final_data.info())
-# print(final_data.head())
-
-# t_data[["longitude", "latitude", "housing_median_age", "total_rooms",
-#                "total_bedrooms", "population", "households", "median_income",
-#                "room_per_house","bedrooms_ratio","people_per_house"]].hist()
-
-
-
-
-log_transformer = FunctionTransformer(np.log, inverse_func=np.exp)
-log_pop = log_transformer.transform(t_data[["population"]])
-
 class ClusterSimilarity(BaseEstimator,TransformerMixin):
-    def __init__(self,n_cluster = 10,gamma=1.0,random_state=None):
-        self.n_cluster = n_cluster
+    def __init__(self,n_clusters = 10,gamma=1.0,random_state=None):
+        self.n_clusters = n_clusters
         self.gamma = gamma
         self.random_state = random_state
         
     def fit(self,x,y=None,sample_weight=None):
-        self.kmeans_ = KMeans(self.n_cluster,random_state=self.random_state)
+        self.kmeans_ = KMeans(self.n_clusters,random_state=self.random_state)
         self.kmeans_.fit(x,sample_weight=sample_weight)
         return self
     
@@ -123,16 +80,54 @@ class ClusterSimilarity(BaseEstimator,TransformerMixin):
         return rbf_kernel(x,self.kmeans_.cluster_centers_,gamma=self.gamma)
     
     def get_feature_names_out(self,names=None):
-        return [f"Cluster {i} similarity" for i in range(self.n_cluster)]
-
+        return [f"Cluster {i} similarity" for i in range(self.n_clusters)]
     
-    
-cluster = ClusterSimilarity(n_cluster = 10,gamma=1.0,random_state=42)
-temp = cluster.fit_transform(t_data[["longitude", "latitude"]],sample_weight = t_data_label)
+def column_ratio(x):
+    return x[:,[0]]/x[:,[1]]
+
+def ratio_name(function_transformer, feature_names_in):
+    return ["ratio"]
+
+cluster = ClusterSimilarity(n_clusters=10, gamma=1., random_state=42)
+
+ratio_pipeline = Pipeline([
+    ("impute",SimpleImputer(strategy="median")),
+    ("column",FunctionTransformer(column_ratio,feature_names_out=ratio_name))
+])
+
+num_pipeline = Pipeline([
+    ("impute",SimpleImputer(strategy="median")),
+    ("std_scaler",StandardScaler())
+])
+
+log_pipeline = Pipeline([
+    ("log",FunctionTransformer(np.log,feature_names_out="one-to-one"))
+])
+
+cat_pipeline = Pipeline([
+    ("impute",SimpleImputer(strategy="most_frequent")),
+    ("ord_encoder", OrdinalEncoder())
+])
 
 
-      
-        
+preprocessing = ColumnTransformer([
+    ("room_per_house",ratio_pipeline,["total_rooms","households"]),
+    ("bedrooms",ratio_pipeline,["total_bedrooms","total_rooms"]),
+    ("people_per_house",ratio_pipeline,["population","households"]),
+    ("l_",log_pipeline,["total_rooms","total_bedrooms", "population", "households"
+                       ,"median_income"]),
+    ("k_",cluster,["longitude", "latitude"]),
+    ("c_",cat_pipeline,make_column_selector(dtype_include=object))
+])
+
+
+
+print(t_data)
+final_data = preprocessing.fit_transform(t_data)
+print(preprocessing.get_feature_names_out())
+
+
+
 
 
 
